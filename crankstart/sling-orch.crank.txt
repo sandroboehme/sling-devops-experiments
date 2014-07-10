@@ -1,20 +1,16 @@
-# Start a full Sling instance with the Sling crankstart launcher
-# TODO: not all integration tests pass, we might be missing some
-# bundles or properties that the Sling launchpad provides
-
 # Set default values for our variables
 defaults port 1240
-defaults orchestrator.n 2
+defaults n 2
 defaults git_repo /Users/stetsenk/Desktop/testrepo
 defaults git_file sling-minion.crank.txt
 defaults git_period 5
 defaults git_period_unit SECONDS
 defaults zk_conn_string localhost:2181
+defaults httpd apachectl
 defaults httpd_balancer_config /private/etc/apache2/mod_proxy_balancer.conf
 
-# TODO should be httpd -k ${command}
-# but crankstart has no way of saying "do not process this" 
-defaults httpd_command httpd -k graceful
+# $${command} is not a crankstart variable, translated to ${command} for commons-exec
+defaults httpd_command sudo ${httpd} $${command}
 
 # Set bootstrap classpath, mvn: protocol can be used
 classpath mvn:org.apache.felix/org.apache.felix.framework/4.4.0
@@ -52,7 +48,7 @@ config org.apache.sling.devops.orchestrator.DefaultOrchestrator
 	sling.devops.git.period = ${git_period}
 	sling.devops.git.period.unit = ${git_period_unit}
 	sling.devops.zookeeper.connString = ${zk_conn_string}
-	sling.devops.orchestrator.n = ${orchestrator.n}
+	sling.devops.orchestrator.n = ${n}
 	
 config org.apache.sling.devops.orchestrator.ModProxyConfigTransitioner
     sling.devops.modproxy.httpd = ${httpd_command}

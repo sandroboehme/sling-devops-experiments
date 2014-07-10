@@ -160,10 +160,8 @@ bundle mvn:org.apache.sling/org.apache.sling.devops.common/0.0.1-SNAPSHOT
 bundle mvn:org.apache.sling/org.apache.sling.devops.minion/0.0.1-SNAPSHOT
 
 # Minion test bundle with a service and a script
-# Change versions between 0.0.1 and 0.0.2 to get
-# different output at /content/mynode.test.
-# (after building the bundle with both -P1 and
-# -P2 from sample-bundle)
+# Change versions between 0.0.1 and 0.0.2 to get different output at /content/mynode.test.
+# (after building the bundle with both -P1 and -P2 from sample-bundle)
 bundle mvn:org.apache.sling/org.apache.sling.samples.test/0.0.1
 
 # Now start bundles
