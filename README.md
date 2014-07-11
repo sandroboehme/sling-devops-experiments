@@ -1,118 +1,163 @@
-Sling Devops Experiments, Volume 4: Git-Driven Scenario
-=======================================================
+Sling Devops Experiments, Volume 5: Automatically Crankstarting Minions
+=======================================================================
 
-This is the fourth of a series of experiments about how [Apache Sling](http://sling.apache.org) can be made more devops-friendly.
+This is the fifth of a series of experiments about how [Apache Sling](http://sling.apache.org) can be made more devops-friendly.
  
-Continuing from the Crankstart-based instance starting mechanism demonstrated in the previous [vol3](../../tree/vol3) experiment, we configure the Orchestrator to monitor a crank file in a Git repository and start new Sling instances for each new version of this file (representing a new Sling configuration). This essentially puts the cluster controller in charge of the running instances.
+Continuing from the Git-driven crank file monitoring mechanism demonstrated in the previous [vol4](../../tree/vol4) experiment, we configure the Orchestrator to automatically crankstart new Sling instances for each new version of this crank file. This fully automates the update process.
 
-The tentative test scenario is as follows:
+The full test scenario is as follows:
 
-1. Start the demo with the Git repository URL of the crank file.
-2. The Orchestrator watches that file in Git for new versions.
-3. Once a new version `V` is found (or the initial version, when starting), the Orchestrator starts\* N Sling instances with that version.
-4. The crankstart file has a few variables: Sling HTTP port number, MongoDB URL, ZooKeeper URL, etc.
-5. The Sling instances announce themselves to the Orchestrator when ready.
-6. Orchestrator has a target version `V` that it wants to expose via the HTTP front-end. Once N Sling instances have announced themselves with that target version, the Orchestrator activates them atomically on the front-end.
-7. When old Sling instances are not needed anymore, they are killed\*.
-
-(\*) *For the first demo, starting/stopping instances can just be a console message saying "please do this manually" - we can look at automating this later.*
+1. The Orchestrator is crankstarted and given the Git repository URL of the Minion crank file.
+1. The Orchestrator watches that file in Git for new versions. Once a new version `V` is found (or the initial version, when starting), the Orchestrator crankstarts `n` Sling instances from that version. This crank file has a few variables: Sling HTTP port number, MongoDB URL, ZooKeeper URL, etc. which the Orchestrator may optionally set.
+1. The Sling instances start and announce themselves to the Orchestrator when ready.
+1. Orchestrator has a target version `V` that it wants to expose via the HTTP front-end. Once `n` Sling instances have announced themselves with that target version, the Orchestrator activates them atomically on the front-end.
+1. When old Sling instances are not needed anymore, they are killed.
 
 Implementation
 --------------
 
-The main difference with the previous prototype is the introduction of a Git repository monitoring mechanism. This is achieved via the use of the [JGit](http://www.eclipse.org/jgit/) library.
+The difference with the previous prototype is that the Orchestrator now automatically starts Minions, using Crankstart. This mechanism requires that the Orchestrator itself  be crankstarted because that is how the Orchestrator is able to determine the path to the Crankstart Launcher JAR. When a set of Minions is no longer needed, the Orchestrator also automatically stops them.
 
-The Orchestrator monitors a crank file in the repository, and, when a new version of it is available, downloads it into the `<SLING-HOME>/devops` directory. The filename (and the corresponding Sling config) are based on the commit timestamp. The next step is to start Minions from this crank file: in this prototype, this step must still be done manually; the Orchestrator simply prints what needs to be done.
+The start/stop mechanism was implemented using the [Apache Commons Exec](http://commons.apache.org/exec) library.
 
 Running
 -------
 
-Before running this prototype, it is necessary to prepare your local Maven repository as follows:
+Before running this prototype, it is necessary to prepare your local Maven repository (using JDK 7 or higher):
 
 1. `mvn clean install` this project.
-2. Build the Sling snapshot bundles.
-  1. Checkout [Sling trunk](http://svn.apache.org/repos/asf/sling/trunk/) at revision 1601574.
-  2. Apply [patch](https://issues.apache.org/jira/secure/attachment/12648482/SLING-3648.patch) from [SLING-3648](https://issues.apache.org/jira/browse/SLING-3648) to it.
-  3. `mvn clean install` the following paths:
-    1. `contrib/crankstart`
-    2. `bundles/jcr/contentloader`
-    3. `bundles/jcr/jackrabbit-server`
-    4. `bundles/jcr/oak-server`
-    5. `bundles/extensions/fsresource`
-    6. `bundles/extensions/groovy`
-    7. `contrib/launchpad/karaf`
-3. Navigate to the `sample-bundle` directory and build two versions of the sample bundle:
-  1. `mvn -P1 clean install`
-  2. `mvn -P2 clean install`
+1. Build the required snapshot bundles:
+	1. Checkout [Sling trunk](http://svn.apache.org/repos/asf/sling/trunk/) at revision 1609716.
+	1. `mvn clean install` the following paths:
+		1. `contrib/crankstart`
+		1. `bundles/jcr/contentloader`
+		1. `bundles/jcr/jackrabbit-server`
+		1. `bundles/jcr/oak-server`
+		1. `bundles/extensions/fsresource`
+		1. `bundles/extensions/groovy`
+		1. `contrib/launchpad/karaf/org.apache.sling.launchpad.karaf`
+1. Navigate to the `sample-bundle` directory and build two versions of the sample bundle:
+	1. `mvn -P1 clean install`
+	1. `mvn -P2 clean install`
 
-### Vagrant
+### Environment Setup
 
-The easiest way to run the prototype is using [Vagrant](http://www.vagrantup.com/).
+It is necessary to set up your environment for running the experiment. The following components are necessary:
 
-#### Environment
+* [Apache Server](http://httpd.apache.org/) 2.4
+* [MongoDB](https://www.mongodb.org/)
+* [ZooKeeper Server](http://zookeeper.apache.org/)
+* [Git](http://git-scm.com/)
 
-The current configuration creates five virtual machines running Ubuntu 12.04:
-* 1 Orchestrator machine, `orchestrator` at 10.10.10.10, which also has the ZooKeeper server, the MongoDB server, the web server (httpd front-end), and the Git repository
-* 2 Minion machines running the first config, `minion-C1-1` at 10.10.10.11 and `minion-C1-2` at 10.10.10.12
-* 2 Minion machines running the second config, `minion-C2-1` at 10.10.10.21 and `minion-C2-2` at 10.10.10.22
+#### Vagrant
 
-Machines are set up by copying up the Crankstart Launcher JAR and crankstarting the Sling instances. `orchestrator` in addition is set up by configuring ZooKeeper, MongoDB, httpd, and Git.
+The easiest way to set up the environment is by using [Vagrant](http://www.vagrantup.com/) (note that you also need to have [VirtualBox](https://www.virtualbox.org/) installed).
 
-The first Minion crank file is committed to the Git repository during setup of the `orchestrator`, the second during setup of each C2 `minion`.
+Vagrant will create a virtual machine with the IP address 10.10.10.10, running Ubuntu with the above components already configured for the experiment. `Vagrantfile` and all other necessary files are in the `vagrant` directory.
 
-#### Launching
+Before launching the VM:
 
-The following is necessary to run the prototype with Vagrant:
+1. Change `CRANKSTART_LAUNCHER_PATH` variable on line 121 of `Vagrantfile` to point to the Crankstart Launcher JAR built above.
+1. If your local Maven repository is not under `~/.m2/repository`, change the variable `MAVEN_REPO_PATH` on line 122 accordingly.
 
-1. Navigate to the `vagrant` directory.
-2. Change `CRANKSTART_LAUNCHER_PATH` variable on line 123 of `Vagrantfile` to point to the Crankstart Launcher JAR built above.
-3. If your local Maven repository is not under `~/.m2/repository`, change the variable `MAVEN_REPO_PATH` on line 124 accordingly.
+Then, bring the VM up (from the `vagrant` directory):
 
-Then, bring up the Orchestrator and the two Minion C1 machines:
 ```
-vagrant up --provision orchestrator minion-C1-1 minion-C1-2
+vagrant up
 ```
 
-If everything goes well, after Vagrant is done, Sling with the first config should be at <http://10.10.10.10/>, and the output of the test script at <http://10.10.10.10/mynode.test>.
+After Vagrant is done, you can `ssh` to the VM:
 
-Afterwards, bring up the two Minion C2 machines:
 ```
-vagrant up --provision minion-C2-1 minion-C2-2
+vagrant ssh
 ```
 
-Eventually <http://10.10.10.10/mynode.test> should switch to the second config.
+When the VM is no longer necessary, you can shut it down:
 
-Note: to re-provision machines that are already up, `vagrant provision` should be used instead of `vagrant up --provision`. Please `vagrant halt` the Minions before re-provisioning the Orchestrator.
-
-Finally, machines can be brought down using
 ```
 vagrant halt
 ```
 
-or forever destroyed using
+or destroy it forever:
+
 ```
 vagrant destroy
 ```
 
-#### Troubleshooting
+In Vagrant terms, the process of configuring a plain VM (installing packages, running scripts, etc.) is called *provisioning*. By default, provisioning is only done the first time you bring up a VM. In case you want to re-provision it (which would bring it to the same state it was when it was first created, with clean MongoDB, ZooKeeper, and the Git repository), you can use the `--provision` flag when bringing it up or
 
-Vagrant machines can be `ssh`ed to using `vagrant ssh <machine>`. Crankstart keeps its log in the `~/crankstart-launcher.out` file (also printed by Vagrant during provisioning), and Sling keeps its log in the `~/<sling-home>/logs/error.log` file where `<sling-home>` is `sling-{orch|Cx-1|Cx-2}-crankstart`.
+```
+vagrant provision
+```
 
-* If the `orchestrator` did not initialize properly, re-provision all machines.
-* If one of the `minion`s did not initialize properly, re-provision it.
-* If `orchestrator` is running and `10.10.10.10` is not pingable, try resetting the `vboxnet0` network interface on the host (`ifconfig vboxnet0 down` followed by `ifconfig vboxnet0 up`).
+if it is already running.
+
+For running the experiment on this VM:
+
+1. `vagrant ssh`
+1. `sudo su root`
+
+Other notes:
+
+* Git repository for the Orchestrator is ready at `/home/vagrant/testrepo` and already has an uncommitted `sling-minion.crank.txt` file in it.
+* `sling-orch.crank.txt` file is also under `/home/vagrant`.
+* Crankstart Launcher JAR is at `/home/vagrant/crankstart-launcher.jar`.
+* Balancer configuration file for Apache Server is specified as `/etc/apache2/mod_proxy_balancer.conf`.
+* HTTP front-end runs on the default port 80.
+
+### Launching the Orchestrator
+
+Crankstart the Orchestrator:
+
+```
+java -Dgit_repo=<path-to-git-repo> -Dhttpd_balancer_config=<path-to-balancer-config-file> -jar <crankstart-launcher>.jar <sling-orch.crank.txt>
+```
+
+where
+
+* `<path-to-git-repo>` is the Git repository in which the Orchestrator will monitor `sling-minion.crank.txt`
+* `<path-to-balancer-config-file` is the path to the Balancer configuration file as specified in `httpd.conf`
+* `<crankstart-launcher.jar>` is the path to the Crankstart Launcher JAR
+* `<sling-orch.crank.txt>` is the path to it
+
+Additionally, you may specify additional parameters using the same `-D` switches before the `-jar` switch:
+
+* `httpd`: path to the `httpd` executable (default: `httpd`, i.e. assumed to be on your `PATH`)
+* `port`: port on which to start the Orchestrator (default: 1240)
+* `n`: number of Minions to start for each config (default: 2)
+* `zk_conn_string`: ZooKeeper connection string (default: `localhost:2181`)
+
+Once the Orchestrator loads, you should be able to access its status page at `/orch/status.html`, i.e. <http://10.10.10.10:1240/orch/status.html> on Vagrant.
+
+### Executing the Scenario
+
+Commit the `sling-minion.crank.txt` file to the Git repository. The Orchestrator should detect the commit and start `n` Minions from it. You should be able to monitor the progress from the status page.
+
+Once the Minions are ready and the Orchestrator activates the front-end, you should see something at `/mynode.test` of your HTTP frontend, i.e. <http://10.10.10.10/mynode.test> on Vagrant. The `test` script rendering the node displays three things:
+
+* The content of the node
+* The version of the `test` script
+* The version of a test OSGi service
+
+where the `test` script and the test OSGi service are supplied by the `org.apache.sling.samples.test` bundle specified in the Minion crank file.
+
+Now modify the version of this bundle from 0.0.1 to 0.0.2 and commit the crank file again. The Orchestrator should detect the change and start `n` more Minions from the new file. Once these new Minions announce their readiness to the Orchestrator, the HTTP front-end should switch to them and the Orchestrator should terminate the old Minions. The updated bundle supplies updated versions of the `test` script and the test OSGi service, and you should see respective changes at `/mynode.test`.
+
+The switch on the front-end is atomic (there is no downtime in-between) and consistent (there is no point in time at which some of the elements rendered on the page come from the new Minion version and some from the old).
 
 Testing
 -------
 
-To verify that the switch between the Sling configs is atomic (from the client point of view), the HttpResourceMonitor tool from the `tools` directory can be used. This tool sends an HTTP request over and over in a single thread and logs changes in responses.
+To verify that the switch between the Sling configs is atomic and consistent (from the client point of view), the `HttpResourceMonitor` tool from the `tools` directory can be used. This tool sends an HTTP request over and over in a single thread and logs changes in responses.
 
 Usage:
+
 ```
-HttpResourceMonitor [host [resource]]
+HttpResourceMonitor host resource
 ```
 
-To monitor the output of our test script while running the prototype with Vagrant:
+e.g. to monitor the output of the `test` script on the Vagrant VM:
+
 ```
 java -cp target/org.apache.sling.devops.tools-0.0.1-SNAPSHOT.jar org.apache.sling.devops.tools.HttpResourceMonitor 10.10.10.10 /mynode.test
 ```
