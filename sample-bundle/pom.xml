@@ -92,6 +92,7 @@
 				<configuration>
 					<instructions>
 						<Sling-Initial-Content>initial-content</Sling-Initial-Content>
+						<Sling-Bundle-Resources>/apps/foo/bar</Sling-Bundle-Resources>
 					</instructions>
 				</configuration>
 			</plugin>

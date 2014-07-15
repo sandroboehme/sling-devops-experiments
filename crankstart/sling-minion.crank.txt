@@ -44,9 +44,11 @@ config org.apache.sling.devops.minion.Minion
 config org.apache.sling.installer.provider.jcr.impl.JcrInstaller
 	sling.jcrinstall.search.path = /sling-cfg/${config}/apps:200
 	sling.jcrinstall.search.path = /sling-cfg/${config}/libs:100
-config org.apache.sling.jcr.resource.internal.JcrResourceResolverFactoryImpl
-	resource.resolver.searchpath = /sling-cfg/${config}/apps
-	resource.resolver.searchpath = /sling-cfg/${config}/libs
+# Config-specific resource resolver paths may be unnecessary
+# if scripts are always provided as bundle resources
+#config org.apache.sling.jcr.resource.internal.JcrResourceResolverFactoryImpl
+#	resource.resolver.searchpath = /sling-cfg/${config}/apps
+#	resource.resolver.searchpath = /sling-cfg/${config}/libs
 config org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService
 	mongouri = ${mongo_uri}
 	db = ${mongo_db}

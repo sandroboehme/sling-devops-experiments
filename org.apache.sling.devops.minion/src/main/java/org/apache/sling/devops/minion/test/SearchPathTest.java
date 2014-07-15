@@ -9,6 +9,7 @@ import org.apache.sling.junit.annotations.SlingAnnotationsTestRunner;
 import org.apache.sling.junit.annotations.TestReference;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.osgi.framework.BundleContext;
@@ -29,6 +30,7 @@ public class SearchPathTest {
 		Assert.assertNotNull("ConfigurationAdmin is null.", this.configurationAdmin);
 	}
 
+	@Ignore("Config-specific esource resolver paths may be unnecessary if scripts are provided as bundle resources")
 	@Test
 	public void checkJcrResourceResolverFactoryPaths() throws IOException {
 		Assume.assumeNotNull(this.getConfig());
