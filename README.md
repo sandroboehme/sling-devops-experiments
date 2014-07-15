@@ -145,6 +145,8 @@ Now modify the version of this bundle from 0.0.1 to 0.0.2 and commit the crank f
 
 The switch on the front-end is atomic (there is no downtime in-between) and consistent (there is no point in time at which some of the elements rendered on the page come from the new Minion version and some from the old).
 
+**Note:** Every time before re-running the experiment, it is necessary to delete the `sling-orch-crankstart` folder created when running the Orchestrator. This folder is used as the Sling home directory of the Orchestrator, and restarting Sling from an existing home directory is not yet supported with Crankstart.
+
 Testing
 -------
 
