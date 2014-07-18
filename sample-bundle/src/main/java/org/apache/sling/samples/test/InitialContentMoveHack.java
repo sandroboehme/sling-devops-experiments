@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
  *  Sling config, so that several configs can live in the same 
  *  content repository. We'll need to find a better way ;-)  
  */
-@Component
+//@Component not used for now (scripts provided as bundle resources)
 public class InitialContentMoveHack implements Runnable {
 
 	private static final Logger logger = LoggerFactory.getLogger(InitialContentMoveHack.class);
