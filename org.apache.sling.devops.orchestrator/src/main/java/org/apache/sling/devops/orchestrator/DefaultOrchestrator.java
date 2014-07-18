@@ -8,7 +8,9 @@ import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Dictionary;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -92,6 +94,8 @@ public class DefaultOrchestrator implements Orchestrator {
 	private MinionController minionController;
 	private String activeConfig = "";
 	private String targetConfig = "";
+	private final Set<String> configsUnderTest = new HashSet<>();
+	private final Set<String> configsStarted = new HashSet<>();
 	private ListAppender<ILoggingEvent> logAppender = new ListAppender<>();
 
 	@Activate
@@ -162,23 +166,13 @@ public class DefaultOrchestrator implements Orchestrator {
 				if (DefaultOrchestrator.this.isConfigOutdated(config)) {
 					logger.info("Config {} is outdated, ignored.", config);
 				} else { // not outdated, so new target
-					DefaultOrchestrator.this.targetConfig = config;
-					if (!DefaultOrchestrator.this.tryTransition(config)) {
-						final File configFile = new File(DefaultOrchestrator.this.devopsDirectory, config + ".crank.txt");
-						try (final FileChannel fileChannel = new FileOutputStream(configFile, false).getChannel()) {
-							fileChannel.write(content);
-						} catch (IOException e) {
-							logger.error("Could not write crank.txt file.", e);
-						}
-						try {
-							DefaultOrchestrator.this.minionController.startMinions(
-									config,
-									configFile.getAbsolutePath(),
-									DefaultOrchestrator.this.n - DefaultOrchestrator.this.instanceManager.getEndpoints(config).size()
-									);
-						} catch (Exception e) {
-							logger.error("Could not start Minions.", e);
-						}
+					final File configFile = DefaultOrchestrator.this.getConfigFile(config);
+					try (final FileChannel fileChannel = new FileOutputStream(configFile, false).getChannel()) {
+						fileChannel.write(content);
+						DefaultOrchestrator.this.targetConfig = config;
+						DefaultOrchestrator.this.tryTransition(config);
+					} catch (IOException e) {
+						logger.error("Could not write config file.", e);
 					}
 				}
 			}
@@ -240,46 +234,89 @@ public class DefaultOrchestrator implements Orchestrator {
 		return list;
 	}
 
+	private File getConfigFile(final String config) {
+		return new File(this.devopsDirectory, config + ".crank.txt");
+	}
+
 	/**
-	 * Tries to transition to the specified config and returns whether the
-	 * transition succeeded.
+	 * Tries to transition to the specified config, starting and stopping
+	 * Minions as necessary.
 	 *
-	 * A transition is considered successful if (i) the specified config
-	 * is outdated, or (ii) the specified config is current (not outdated)
-	 * and is satisfied. In the latter case, the minions running the config
-	 * prior to the transition are afterwards stopped.
+	 * In order for a transition to occur, the following conditions must be met:
+	 * <ol>
+	 * 	<li>The config must not be outdated.
+	 * 	<li>The config must have been tested.
+	 * 	<li>The config must not be currently under test.
+	 * 	<li>The config must be satisfied.
+	 * </ol>
+	 *
+	 * If condition 1 is not met, no further actions are performed.
+	 * If condition 2 is not met, one test Minion instance is started.
+	 * If condition 3 is not met, the test has succeeded, so additional Minion instances are started.
+	 * If condition 4 is not met, we only need to wait.
 	 *
 	 * @param newConfig config to try to transition to
-	 * @return true if the transition occurred or the config is outdated, false otherwise
 	 */
-	private synchronized boolean tryTransition(final String newConfig) {
-		if (this.isConfigOutdated(newConfig)) {
+	private synchronized void tryTransition(final String newConfig) {
+		if (this.isConfigOutdated(newConfig)) { // condition 1
 			logger.info("Config {} is outdated, instances ignored.", newConfig);
-			return true;
 		} else {
-			if (this.isConfigSatisfied(newConfig)) {
-				logger.info("Config {} satisfied, transitioning...", newConfig);
+			if (!this.isConfigTested(newConfig)) { // condition 2
+				logger.info("Config {} is not yet tested, starting a test Minion...", newConfig);
 				try {
-					this.configTransitioner.transition(
+					this.minionController.startMinions(
 							newConfig,
-							this.instanceManager.getEndpoints(newConfig)
+							this.getConfigFile(newConfig).getAbsolutePath(),
+							1
 							);
-					if (!newConfig.equals(this.getActiveConfig()) && !this.instanceManager.getEndpoints(this.getActiveConfig()).isEmpty()) {
+					this.configsUnderTest.add(newConfig);
+				} catch (Exception e) {
+					logger.error("Could not start a test Minion.", e);
+				}
+			} else {
+				if (this.configsUnderTest.contains(newConfig)) { // condition 3
+					logger.info("Config {} tested successfully.", newConfig);
+					try {
+						this.minionController.startMinions(
+								newConfig,
+								this.getConfigFile(newConfig).getAbsolutePath(),
+								this.n - this.instanceManager.getEndpoints(newConfig).size()
+								);
+						this.configsUnderTest.remove(newConfig);
+						this.configsStarted.add(newConfig);
+					} catch (Exception e) {
+						logger.error("Could not start Minions.", e);
+					}
+				} else {
+					if (this.isConfigSatisfied(newConfig)) { // condition 4
+						logger.info("Config {} satisfied, transitioning...", newConfig);
 						try {
-							this.minionController.stopMinions(this.getActiveConfig());
+							this.configTransitioner.transition(
+									newConfig,
+									this.instanceManager.getEndpoints(newConfig)
+									);
+							this.activeConfig = newConfig;
+
+							// Stop all outdated configs
+							for (final Iterator<String> it = this.configsStarted.iterator(); it.hasNext(); ) {
+								final String config = it.next();
+								if (this.isConfigOutdated(config) && !this.getActiveConfig().equals(config)) {
+									try {
+										this.minionController.stopMinions(config);
+										it.remove();
+									} catch (Exception e) {
+										logger.error("Could not stop Minions.", e);
+									}
+								}
+							}
 						} catch (Exception e) {
-							logger.error("Could not stop Minions.", e);
+							// TODO Auto-generated catch block
+							logger.error("Transition failed.", e);
 						}
 					}
-					this.activeConfig = newConfig;
-					return true;
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					logger.error("Transition failed.", e);
 				}
 			}
 		}
-		return false;
 	}
 
 	private boolean isConfigOutdated(final String newConfig) {
@@ -289,5 +326,9 @@ public class DefaultOrchestrator implements Orchestrator {
 	private boolean isConfigSatisfied(final String newConfig) {
 		return newConfig.equals(this.getTargetConfig())
 				&& this.instanceManager.getEndpoints(newConfig).size() >= this.n;
+	}
+
+	private boolean isConfigTested(final String config) {
+		return this.instanceManager.getConfigs().containsKey(config);
 	}
 }
