@@ -1,7 +1,7 @@
 package org.apache.sling.devops.tools;
+
 import java.io.IOException;
 
-import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.NoHttpResponseException;
 import org.apache.http.client.ResponseHandler;
@@ -18,8 +18,7 @@ public class HttpResourceMonitor {
 	private static final Logger logger = LoggerFactory.getLogger(HttpResourceMonitor.class);
 
 	public static void main(String[] args) throws IOException {
-		String host = args.length < 1 ? "localhost" : args[0];
-		String resource = args.length < 2 ? "/" : args[1];
+		String address = args.length < 1 ? "http://localhost/" : args[0];
 
 		try (CloseableHttpClient httpClient = HttpClients.custom().setRetryHandler(new DefaultHttpRequestRetryHandler(0, false)).build()) {
 
@@ -41,8 +40,7 @@ public class HttpResourceMonitor {
 				String curResponse;
 				try {
 					curResponse = httpClient.execute(
-							new HttpHost(host),
-							new HttpGet(resource),
+							new HttpGet(address),
 							responseHandler
 							);
 				} catch (NoHttpResponseException e) {
