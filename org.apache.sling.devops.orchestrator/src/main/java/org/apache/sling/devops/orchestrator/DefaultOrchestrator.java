@@ -159,21 +159,26 @@ public class DefaultOrchestrator implements Orchestrator {
 			@Override
 			public synchronized void onModified(long time, ByteBuffer content) {
 				final String config = "C" + time / 1000;
-				if (!DefaultOrchestrator.this.tryTransition(config)) {
-					final File configFile = new File(DefaultOrchestrator.this.devopsDirectory, config + ".crank.txt");
-					try (final FileChannel fileChannel = new FileOutputStream(configFile, false).getChannel()) {
-						fileChannel.write(content);
-					} catch (IOException e) {
-						logger.error("Could not write crank.txt file.", e);
-					}
-					try {
-						DefaultOrchestrator.this.minionController.startMinions(
-								config,
-								configFile.getAbsolutePath(),
-								DefaultOrchestrator.this.n - DefaultOrchestrator.this.instanceManager.getEndpoints(config).size()
-								);
-					} catch (Exception e) {
-						logger.error("Could not start Minions.", e);
+				if (DefaultOrchestrator.this.isConfigOutdated(config)) {
+					logger.info("Config {} is outdated, ignored.", config);
+				} else { // not outdated, so new target
+					DefaultOrchestrator.this.targetConfig = config;
+					if (!DefaultOrchestrator.this.tryTransition(config)) {
+						final File configFile = new File(DefaultOrchestrator.this.devopsDirectory, config + ".crank.txt");
+						try (final FileChannel fileChannel = new FileOutputStream(configFile, false).getChannel()) {
+							fileChannel.write(content);
+						} catch (IOException e) {
+							logger.error("Could not write crank.txt file.", e);
+						}
+						try {
+							DefaultOrchestrator.this.minionController.startMinions(
+									config,
+									configFile.getAbsolutePath(),
+									DefaultOrchestrator.this.n - DefaultOrchestrator.this.instanceManager.getEndpoints(config).size()
+									);
+						} catch (Exception e) {
+							logger.error("Could not start Minions.", e);
+						}
 					}
 				}
 			}
@@ -249,10 +254,9 @@ public class DefaultOrchestrator implements Orchestrator {
 	 */
 	private synchronized boolean tryTransition(final String newConfig) {
 		if (this.isConfigOutdated(newConfig)) {
-			logger.info("Config {} is outdated, ignored.", newConfig);
+			logger.info("Config {} is outdated, instances ignored.", newConfig);
 			return true;
 		} else {
-			this.targetConfig = newConfig;
 			if (this.isConfigSatisfied(newConfig)) {
 				logger.info("Config {} satisfied, transitioning...", newConfig);
 				try {
