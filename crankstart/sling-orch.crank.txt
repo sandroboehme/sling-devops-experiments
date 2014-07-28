@@ -51,8 +51,8 @@ config org.apache.sling.devops.orchestrator.DefaultOrchestrator
 	sling.devops.orchestrator.n = ${n}
 	
 config org.apache.sling.devops.orchestrator.ModProxyConfigTransitioner
-    sling.devops.modproxy.httpd = ${httpd_command}
-    sling.devops.httpd.balancer.config = ${httpd_balancer_config}
+	sling.devops.modproxy.httpd = ${httpd_command}
+	sling.devops.httpd.balancer.config = ${httpd_balancer_config}
 
 # Install bundles
 # mvn: protocol can be used.

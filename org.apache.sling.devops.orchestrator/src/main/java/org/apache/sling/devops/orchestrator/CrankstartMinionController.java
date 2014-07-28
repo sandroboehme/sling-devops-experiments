@@ -142,10 +142,10 @@ public class CrankstartMinionController implements MinionController {
 	}
 
 	private static boolean isPortAvailable(final int port) {
-	    try (final ServerSocket socket = new ServerSocket(port)) {
-	        return true;
-	    } catch (final Exception e) {
-	        return false;
-	    }
+		try (final ServerSocket socket = new ServerSocket(port)) {
+			return true;
+		} catch (final Exception e) {
+			return false;
+		}
 	}
 }

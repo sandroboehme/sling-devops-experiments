@@ -31,24 +31,29 @@ public class ModProxyConfigTransitioner implements ConfigTransitioner {
 
 	private static final Logger logger = LoggerFactory.getLogger(ModProxyConfigTransitioner.class);
 
-    @Property(label = "Command to execute to activate a new load balancer config")
-    public static final String HTTPD = "sling.devops.modproxy.httpd";
+	@Property(label = "Command to execute to activate a new load balancer config")
+	public static final String HTTPD = "sling.devops.modproxy.httpd";
 
-    @Property(label = "Path to mod_proxy_balancer config file")
-    public static final String HTTPD_BALANCER_CONFIG_PATH_PROP = "sling.devops.httpd.balancer.config";
+	@Property(label = "Path to mod_proxy_balancer config file")
+	public static final String HTTPD_BALANCER_CONFIG_PATH_PROP = "sling.devops.httpd.balancer.config";
 
 	private CommandLine httpdCommand;
 	private File httpdConfigFile;
 
 	@Activate
 	protected void onActivate(ComponentContext ctx) {
-	    httpdCommand = CommandLine.parse(
-	            PropertiesUtil.toString(ctx.getProperties().get(HTTPD), "MISSING_" + HTTPD));
-	    httpdConfigFile = new File(PropertiesUtil.toString(ctx.getProperties().get(HTTPD_BALANCER_CONFIG_PATH_PROP), 
-	            "MISSING_" + HTTPD_BALANCER_CONFIG_PATH_PROP));
-	    logger.info("Activated, with command line {} and httpd config file {}", 
-	            httpdCommand.toString(),
-	            httpdConfigFile.getAbsolutePath());
+		this.httpdCommand = CommandLine.parse(PropertiesUtil.toString(
+				ctx.getProperties().get(HTTPD),
+				"MISSING_" + HTTPD
+				));
+		this.httpdConfigFile = new File(PropertiesUtil.toString(
+				ctx.getProperties().get(HTTPD_BALANCER_CONFIG_PATH_PROP),
+				"MISSING_" + HTTPD_BALANCER_CONFIG_PATH_PROP
+				));
+
+		logger.info("Activated, with command line {} and httpd config file {}",
+				this.httpdCommand,
+				this.httpdConfigFile.getAbsolutePath());
 
 		this.httpd("stop");
 	}
@@ -58,13 +63,13 @@ public class ModProxyConfigTransitioner implements ConfigTransitioner {
 
 		// Update config file
 		try (PrintWriter writer = new PrintWriter(httpdConfigFile)) {
-		    writer.print("# written by ");
-		    writer.print(getClass().getSimpleName());
-		    writer.print(" for config ");
-		    writer.print(config);
-		    writer.print(" at ");
-		    writer.println(new Date());
-		    
+			writer.println(String.format(
+					"# written by %s for config=%s on %s",
+					this.getClass().getSimpleName(),
+					config,
+					new Date()
+			));
+
 			for (String endpoint : endpoints) {
 				writer.println(String.format(
 						"BalancerMember %s route=%s",
@@ -86,12 +91,12 @@ public class ModProxyConfigTransitioner implements ConfigTransitioner {
 
 	private void httpd(String command) {
 
-	    // Replace ${command} in configured command line
-	    final CommandLine toExecute = new CommandLine(httpdCommand);
-	    final Map<String, Object> params = new HashMap<>();
-        params.put("command", command);
-        toExecute.setSubstitutionMap(params);
-	    
+		// Replace ${command} in configured command line
+		final Map<String, Object> params = new HashMap<>();
+		params.put("command", command);
+		final CommandLine toExecute = new CommandLine(this.httpdCommand);
+		toExecute.setSubstitutionMap(params);
+
 		final Executor executor = new DefaultExecutor();
 		final List<String> errors = new LinkedList<>();
 		executor.setStreamHandler(new PumpStreamHandler(
@@ -106,23 +111,22 @@ public class ModProxyConfigTransitioner implements ConfigTransitioner {
 					protected void processLine(final String line, final int level) {
 						errors.add(line);
 					}
-				},
-				new ByteArrayInputStream(new byte[]{})  // stdin: nothing
+				}
 		));
 		
 		try {
-	        final int exitValue = executor.execute(toExecute);
-	        
-	        // Log errors: ERROR level if exit code not 0, WARN level otherwise
-	        if (exitValue != 0) {
-	            for (final String error : errors) logger.error(error);
-	            logger.error("Proxy command \"{}\" exited with value {}.", toExecute, exitValue);
-	        } else {
-	            for (final String error : errors) logger.warn(error);
-	            logger.info("Proxy command \"{}\" succeeded.", toExecute);
-	        }
+			final int exitValue = executor.execute(toExecute);
+
+			// Log errors: ERROR level if exit code not 0, WARN level otherwise
+			if (exitValue != 0) {
+				for (final String error : errors) logger.error(error);
+				logger.error("Proxy command \"{}\" exited with value {}.", toExecute, exitValue);
+			} else {
+				for (final String error : errors) logger.warn(error);
+				logger.info("Proxy command \"{}\" succeeded.", toExecute);
+			}
 		} catch(IOException ioe) {
-		    logger.error("Command execution failed :" + toExecute, ioe);
+			logger.error("Command execution failed :" + toExecute, ioe);
 		}
 
 	}

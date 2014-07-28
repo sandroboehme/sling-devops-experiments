@@ -35,41 +35,40 @@ public class InitialContentMoveHack implements Runnable {
 	
 	@Activate
 	protected void activate(ComponentContext ctx) {
-        config = ctx.getBundleContext().getProperty("sling.devops.config");
-        if(config == null) {
-            logger.info("Config is null, not moving anything.");
-        } else {
-            final Thread t = new Thread(this, getClass().getSimpleName());
-            t.setDaemon(true);
-            t.start();
-        }
+		config = ctx.getBundleContext().getProperty("sling.devops.config");
+		if(config == null) {
+			logger.info("Config is null, not moving anything.");
+		} else {
+			final Thread t = new Thread(this, getClass().getSimpleName());
+			t.setDaemon(true);
+			t.start();
+		}
 	}
 	
 	@Override
-    public void run() {
-        logger.info("Waiting for initial content in thread {}", Thread.currentThread().getName());
-	    try {
-	        long lastReport = 0;
-	        while(true) {
-	            final String problem = tryMoving();
-	            if(problem == null) {
-	                logger.info("Move successful, config={}", config);
-	                break;
-	            }
-	            if(System.currentTimeMillis() - lastReport > 10000L) {
-	                logger.info("Move not successful: {}", problem);
-	            }
-	            Thread.sleep(1000);
-	        }
-	    } catch(Exception e) {
-	        logger.warn("Exception in run()", e);
-	    }
-	    logger.info("Thread ends: {}", Thread.currentThread().getName());
-    }
+	public void run() {
+		logger.info("Waiting for initial content in thread {}", Thread.currentThread().getName());
+		try {
+			long lastReport = 0;
+			while(true) {
+				final String problem = tryMoving();
+				if(problem == null) {
+					logger.info("Move successful, config={}", config);
+					break;
+				}
+				if(System.currentTimeMillis() - lastReport > 10000L) {
+					logger.info("Move not successful: {}", problem);
+				}
+				Thread.sleep(1000);
+			}
+		} catch(Exception e) {
+			logger.warn("Exception in run()", e);
+		}
+		logger.info("Thread ends: {}", Thread.currentThread().getName());
+	}
 	
 	private String tryMoving() {
-	    String problem = null;
-	    
+		String problem = null;
 		ResourceResolver adminResolver = null;
 		try {
 			adminResolver = resourceResolverFactory.getAdministrativeResourceResolver(null);
