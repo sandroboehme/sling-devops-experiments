@@ -56,10 +56,7 @@ public class CrankstartMinionController implements MinionController {
 		for (int i = 0; i < num; i++) {
 
 			// Find available port
-			int port;
-			do {
-				port = this.random.nextInt(PORT_MAX - PORT_MIN + 1) + PORT_MIN;
-			} while (!isPortAvailable(port));
+			final int port = this.getAvailablePort();
 
 			final CommandLine commandLine = new CommandLine(this.baseCommandLine);
 
@@ -81,32 +78,29 @@ public class CrankstartMinionController implements MinionController {
 							logger.debug(line);
 						}
 					}));
-			logger.info("Starting a Minion with config={} on port {}", config, port);
+			executor.setExitValue(143); // 143 seems to be the exit code when process is terminated
+			logger.info("Starting a Minion with config={} on port {}...", config, port);
 			
-			final ExecuteResultHandler eh = new DefaultExecuteResultHandler() {
-			    
-			    private String errorInfo() {
-			        return "config=" + config + ", command line=" + commandLine + ", debug log might provide more info";
-			    }
-			    
-                @Override
-                public void onProcessComplete(int exitValue) {
-                    super.onProcessComplete(exitValue);
-                    if(exitValue == 0) {
-                        logger.info("Minion process for config {} exited without errors", config);
-                    } else {
-                        logger.warn("Minion process execution failed (exit code={}), {}", exitValue, errorInfo());
-                    }
-                }
+			executor.execute(commandLine, new DefaultExecuteResultHandler() {
 
-                @Override
-                public void onProcessFailed(ExecuteException e) {
-                    super.onProcessFailed(e);
-                    logger.warn("Minion process execution failed, " + errorInfo(), e);
-                }
-			    
-			};
-			executor.execute(commandLine, eh);
+				@Override
+				public void onProcessComplete(int exitValue) {
+					super.onProcessComplete(exitValue);
+					logger.info("Minion process with config={} on port {} exited successfully.", config, port);
+				}
+
+				@Override
+				public void onProcessFailed(ExecuteException e) {
+					super.onProcessFailed(e);
+					logger.warn(
+							"Minion process with config={} on port {} failed (command={}; log might provide more information).",
+							config,
+							port,
+							commandLine,
+							e
+							);
+					}
+			});
 
 			if (!this.configInstances.containsKey(config)) {
 				this.configInstances.put(config, new LinkedList<Executor>());
@@ -137,6 +131,14 @@ public class CrankstartMinionController implements MinionController {
 		for (final String config : this.configInstances.keySet()) {
 			this.stopMinions(config);
 		}
+	}
+
+	private int getAvailablePort() {
+		int port;
+		do {
+			port = this.random.nextInt(PORT_MAX - PORT_MIN + 1) + PORT_MIN;
+		} while (!isPortAvailable(port));
+		return port;
 	}
 
 	private static boolean isPortAvailable(final int port) {
