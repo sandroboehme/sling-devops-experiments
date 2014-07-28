@@ -31,6 +31,7 @@ Before running this prototype, it is necessary to prepare your local Maven repos
 	1. `mvn clean install` the following paths:
 		1. `contrib/crankstart`
 		1. `bundles/jcr/contentloader`
+		1. `bundles/jcr/jackrabbit-base`
 		1. `bundles/jcr/jackrabbit-server`
 		1. `bundles/jcr/oak-server`
 		1. `bundles/extensions/fsresource`
