@@ -52,3 +52,6 @@ mv sling-minion.crank.txt testrepo/
 cd testrepo
 git add sling-minion.crank.txt
 cd ..
+
+# Delete Orchestrator's SLING_HOME
+rm -rf sling-orch-crankstart/
