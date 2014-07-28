@@ -47,8 +47,10 @@ config org.apache.sling.devops.orchestrator.DefaultOrchestrator
 	sling.devops.git.file = ${git_file}
 	sling.devops.git.period = ${git_period}
 	sling.devops.git.period.unit = ${git_period_unit}
-	sling.devops.zookeeper.connString = ${zk_conn_string}
 	sling.devops.orchestrator.n = ${n}
+
+config org.apache.sling.devops.orchestrator.ZooKeeperInstanceMonitor
+	sling.devops.zookeeper.connString = ${zk_conn_string}
 	
 config org.apache.sling.devops.orchestrator.ModProxyConfigTransitioner
 	sling.devops.modproxy.httpd = ${httpd_command}

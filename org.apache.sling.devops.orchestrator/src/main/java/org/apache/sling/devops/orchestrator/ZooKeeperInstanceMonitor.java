@@ -10,6 +10,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Service;
+import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.apache.sling.devops.Instance;
 import org.apache.sling.devops.zookeeper.ZooKeeperConnector;
 import org.apache.zookeeper.AsyncCallback;
@@ -17,41 +22,53 @@ import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
+import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Component
+@Service
 public class ZooKeeperInstanceMonitor implements InstanceMonitor {
 
 	private static final Logger logger = LoggerFactory.getLogger(ZooKeeperInstanceMonitor.class);
+
+	@Property(label = "ZooKeeper connection string")
+	public static final String ZK_CONNECTION_STRING_PROP = "sling.devops.zookeeper.connString";
 
 	private List<InstanceListener> listeners;
 	private ZooKeeperConnector zkConnector;
 	private final Map<String, Instance> currentInstances = new HashMap<>();
 	private int currentVersion = -1;
 
-	public ZooKeeperInstanceMonitor(String connectionString) throws IOException {
+	@Activate
+	public void onActivate(final ComponentContext componentContext) throws IOException {
 		this.listeners = new LinkedList<>();
-		this.zkConnector = new ZooKeeperConnector(connectionString, new Watcher() {
-			@Override
-			public void process(WatchedEvent event) {
-				if (event.getType() == Event.EventType.NodeChildrenChanged) {
+		this.zkConnector = new ZooKeeperConnector(
+				PropertiesUtil.toString(
+						componentContext.getProperties().get(ZK_CONNECTION_STRING_PROP),
+						"MISSING_" + ZK_CONNECTION_STRING_PROP
+						),
+				new Watcher() {
+					@Override
+					public void process(WatchedEvent event) {
+						if (event.getType() == Event.EventType.NodeChildrenChanged) {
 
-					// Our watch fired: we should update the children, which must
-					// re-set the watch.
-					//
-					// NOTE: the watch is not fired when the data of a child changes.
-					// Therefore a child wishing to change its data must delete
-					// and recreate its node.
+							// Our watch fired: we should update the children, which must
+							// re-set the watch.
+							//
+							// NOTE: the watch is not fired when the data of a child changes.
+							// Therefore a child wishing to change its data must delete
+							// and recreate its node.
 
-					logger.debug("Children changed, updating instances.");
-					ZooKeeperInstanceMonitor.this.updateInstances();
-				} else if (event.getType() != Event.EventType.None) {
-					// our root node changed, shouldn't happen
-					logger.warn("Node was changed, closing ZooKeeper connection.");
-					logger.warn(event.toString() + " " + event.getType());
-					ZooKeeperInstanceMonitor.this.zkConnector.close();
-				}
-			}
+							logger.debug("Children changed, updating instances.");
+							ZooKeeperInstanceMonitor.this.updateInstances();
+						} else if (event.getType() != Event.EventType.None) {
+							// our root node changed, shouldn't happen
+							logger.warn("Node was changed, closing ZooKeeper connection.");
+							logger.warn(event.toString() + " " + event.getType());
+							ZooKeeperInstanceMonitor.this.zkConnector.close();
+						}
+					}
 		});
 		this.updateInstances();
 	}

@@ -59,9 +59,6 @@ public class DefaultOrchestrator implements Orchestrator {
 	@Property(label = "Path to the monitored file within the Git repository")
 	public static final String GIT_REPO_FILE_PATH_PROP = "sling.devops.git.file";
 
-	@Property(label = "ZooKeeper connection string")
-	public static final String ZK_CONNECTION_STRING_PROP = "sling.devops.zookeeper.connString";
-
 	@Property(label = "Password for sudo command")
 	public static final String SUDO_PASSWORD_PROP = "sudo.password";
 
@@ -82,13 +79,15 @@ public class DefaultOrchestrator implements Orchestrator {
 
 	@Reference
 	private SlingSettingsService slingSettingsService;
+
+	@Reference
+	private InstanceMonitor instanceMonitor;
 	
 	@Reference
 	private ConfigTransitioner configTransitioner;
 
 	private File devopsDirectory;
 	private int n;
-	private InstanceMonitor instanceMonitor;
 	private InstanceManager instanceManager;
 	private GitFileMonitor gitFileMonitor;
 	private MinionController minionController;
@@ -116,7 +115,6 @@ public class DefaultOrchestrator implements Orchestrator {
 		else this.minionController = new ManualMinionController();
 
 		// Setup instance listener
-		this.instanceMonitor = new ZooKeeperInstanceMonitor(PropertiesUtil.toString(properties.get(ZK_CONNECTION_STRING_PROP), null));
 		this.instanceMonitor.addInstanceListener(new InstanceMonitor.InstanceListener() {
 
 			@Override
