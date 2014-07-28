@@ -49,13 +49,8 @@ public class ModProxyConfigTransitioner implements ConfigTransitioner {
 	    logger.info("Activated, with command line {} and httpd config file {}", 
 	            httpdCommand.toString(),
 	            httpdConfigFile.getAbsolutePath());
-	    
-	    try {
-	        // TODO activate once crankstart supports untranslated ${command}
-	        // this.httpd("start");
-	    } catch(Exception e) {
-	        logger.warn("httpd execution failed", e);
-	    }
+
+		this.httpd("stop");
 	}
 	
  	@Override
@@ -85,9 +80,8 @@ public class ModProxyConfigTransitioner implements ConfigTransitioner {
 	}
 
 	@Override
-	public void close() throws IOException {
-        // TODO activate once crankstart supports untranslated ${command}
-		// httpd("stop");
+	public void close() {
+		httpd("stop");
 	}
 
 	private void httpd(String command) {
