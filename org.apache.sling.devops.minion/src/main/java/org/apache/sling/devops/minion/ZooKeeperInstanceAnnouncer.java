@@ -3,6 +3,11 @@ package org.apache.sling.devops.minion;
 import java.io.IOException;
 import java.util.Set;
 
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Service;
+import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.apache.sling.devops.Instance;
 import org.apache.sling.devops.zookeeper.ZooKeeperConnector;
 import org.apache.zookeeper.AsyncCallback;
@@ -12,25 +17,37 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.Stat;
+import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Component
+@Service
 public class ZooKeeperInstanceAnnouncer implements InstanceAnnouncer {
 
 	private static final Logger logger = LoggerFactory.getLogger(ZooKeeperInstanceAnnouncer.class);
 
+	@Property(label = "ZooKeeper connection string")
+	public static final String ZK_CONNECTION_STRING_PROP = "sling.devops.zookeeper.connString";
+
 	private ZooKeeperConnector zkConnector;
 
-	public ZooKeeperInstanceAnnouncer(String connectionString) throws IOException {
-		this.zkConnector = new ZooKeeperConnector(connectionString, new Watcher() {
-			@Override
-			public void process(WatchedEvent event) {
-				if (event.getType() != Event.EventType.None) {
-					// our node changed, maybe another instance has the same ID?
-					logger.warn("Node was changed, closing ZooKeeper connection.");
-					ZooKeeperInstanceAnnouncer.this.zkConnector.close();
-				}
-			}
+	@Activate
+	public void onActivate(final ComponentContext componentContext) throws IOException {
+		this.zkConnector = new ZooKeeperConnector(
+				PropertiesUtil.toString(
+						componentContext.getProperties().get(ZK_CONNECTION_STRING_PROP),
+						"MISSING_" + ZK_CONNECTION_STRING_PROP
+						),
+				new Watcher() {
+					@Override
+					public void process(WatchedEvent event) {
+						if (event.getType() != Event.EventType.None) {
+							// our node changed, maybe another instance has the same ID?
+							logger.warn("Node was changed, closing ZooKeeper connection.");
+							ZooKeeperInstanceAnnouncer.this.zkConnector.close();
+						}
+					}
 		});
 	}
 

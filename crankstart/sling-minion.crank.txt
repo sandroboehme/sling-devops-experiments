@@ -39,7 +39,7 @@ bundle mvn:org.apache.felix/org.apache.felix.configadmin/1.6.0
 start.all.bundles
 
 # Once Configuration Admin is loaded, we can set configurations
-config org.apache.sling.devops.minion.Minion
+config org.apache.sling.devops.minion.ZooKeeperInstanceAnnouncer
 	sling.devops.zookeeper.connString = ${zk_conn_string}
 config org.apache.sling.installer.provider.jcr.impl.JcrInstaller
 	sling.jcrinstall.search.path = /sling-cfg/${config}/apps:200

@@ -9,9 +9,7 @@ import java.util.Hashtable;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
-import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.apache.sling.devops.Instance;
 import org.apache.sling.devops.minion.test.SearchPathTest;
 import org.apache.sling.discovery.DiscoveryService;
@@ -45,9 +43,6 @@ public class Minion {
 	public static final String[] HC_TAGS = new String[]{ "devops", "minion" };
 	public static final String HC_PACKAGE = SearchPathTest.class.getPackage().getName();
 
-	@Property(label = "ZooKeeper connection string")
-	public static final String ZK_CONNECTION_STRING_PROP = "sling.devops.zookeeper.connString";
-
 	@Reference
 	private ConfigurationAdmin configurationAdmin;
 
@@ -57,16 +52,16 @@ public class Minion {
 	@Reference
 	private DiscoveryService discoveryService;
 
-	private String config;
+	@Reference
 	private InstanceAnnouncer instanceAnnouncer;
+
+	private String config;
 	private HealthCheckMonitor healthCheckMonitor;
 
 	@Activate
 	public void onActivate(final ComponentContext componentContext) throws IOException, InvalidSyntaxException {
 		final Dictionary<?, ?> properties = componentContext.getProperties();
 		this.config = componentContext.getBundleContext().getProperty(CONFIG_PROP);
-		this.instanceAnnouncer = new ZooKeeperInstanceAnnouncer(
-				PropertiesUtil.toString(properties.get(ZK_CONNECTION_STRING_PROP), null));
 
 		// Check health check config
 		final Configuration[] hcConfigs = this.configurationAdmin.listConfigurations(String.format(
