@@ -43,6 +43,9 @@ p {
 	margin-right: 8px;
 	display: inline-block;
 }
+.note {
+	font-size: 80%;
+}
 #log {
 	padding: 4px;
 	border: 1px dashed #ccc;
@@ -67,7 +70,7 @@ p {
 	<table id="configsTable">
 		<tr>
 			<th>Config</th>
-			<th>Endpoints (n = <%= orch.getN() %>)</th>
+			<th>Endpoints* (n = <%= orch.getN() %>)</th>
 		</tr>
 <%
 	var importantConfigs = [ activeConfig, targetConfig ];
@@ -101,6 +104,7 @@ p {
 	}
 %>
 	</table>
+	<p class="note">* Endpoints might not be directly accessible from the outside.</p>
 	<p><span class="box active"></span> Active config</p>
 	<p><span class="box target"></span> Target config</p>
 </div>
