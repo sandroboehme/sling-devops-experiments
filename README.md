@@ -121,6 +121,12 @@ where
 * `<crankstart-launcher.jar>` is the path to the Crankstart Launcher JAR
 * `<sling-orch.crank.txt>` is the path to it
 
+i.e. on Vagrant:
+
+```
+java -Dgit_repo=/home/vagrant/testrepo -Dhttpd_balancer_config=/etc/apache2/mod_proxy_balancer.conf -jar crankstart-launcher.jar sling-orch.crank.txt
+```
+
 Additionally, you may specify additional parameters using the same `-D` switches before the `-jar` switch:
 
 * `httpd`: path to the `httpd` executable (default: `httpd`, i.e. assumed to be on your `PATH`)
@@ -144,7 +150,7 @@ where the `test` script and the test OSGi service are supplied by the `org.apach
 
 Now modify the version of this bundle from 0.0.1 to 0.0.2 and commit the crank file again. The Orchestrator should detect the change and start `n` more Minions from the new file. Once these new Minions announce their readiness to the Orchestrator, the HTTP front-end should switch to them and the Orchestrator should terminate the old Minions. The updated bundle supplies updated versions of the `test` script and the test OSGi service, and you should see respective changes at `/mynode.test`.
 
-The switch on the front-end is atomic (there is no downtime in-between) and consistent (there is no point in time at which some of the elements rendered on the page come from the new Minion version and some from the old).
+The switch on the front-end is atomic (there is no point in time at which some of the elements rendered on the page come from the new Minion version and some from the old) and zero-downtime.
 
 **Note:** Every time before re-running the experiment, it is necessary to delete the `sling-orch-crankstart` folder created when running the Orchestrator. This folder is used as the Sling home directory of the Orchestrator, and restarting Sling from an existing home directory is not yet supported with Crankstart.
 
