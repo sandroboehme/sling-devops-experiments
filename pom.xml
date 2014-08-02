@@ -5,52 +5,22 @@
 	<parent>
 		<groupId>org.apache.sling</groupId>
 		<artifactId>sling</artifactId>
-		<version>19</version>
+		<version>20</version>
 	</parent>
 
 	<artifactId>org.apache.sling.devops</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>Apache Sling DevOps</name>
+	<properties>
+		<sling.java.version>7</sling.java.version>
+	</properties>
 
 	<modules>
 		<module>org.apache.sling.devops.common</module>
 		<module>org.apache.sling.devops.minion</module>
 		<module>org.apache.sling.devops.orchestrator</module>
 	</modules>
-
-	<!--
-		Build project with Java 7.
-		Technically setting the sling.java.version property to 7
-		should suffice, but due to a check in the Sling parent pom
-		the build fails with error "sling.java.version must be
-		5 or 6".
-	-->
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<source>7</source>
-					<target>7</target>
-					<showDeprecation>true</showDeprecation>
-					<showWarnings>true</showWarnings>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>animal-sniffer-maven-plugin</artifactId>
-				<configuration>
-					<signature>
-						<groupId>org.codehaus.mojo.signature</groupId>
-						<artifactId>java17</artifactId>
-						<version>1.0</version>
-					</signature>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
 
 	<dependencyManagement>
 		<dependencies>
