@@ -24,6 +24,7 @@
 				<configuration>
 					<instructions>
 						<Sling-Initial-Content>initial-content</Sling-Initial-Content>
+						<Sling-Bundle-Resources>/apps/orch/status</Sling-Bundle-Resources>
 
 						<!-- JGit's jsch dependency is not a valid bundle but is listed as Require-Bundle -->
 						<Embed-Dependency>org.eclipse.jgit,JavaEWAH,jsch</Embed-Dependency>

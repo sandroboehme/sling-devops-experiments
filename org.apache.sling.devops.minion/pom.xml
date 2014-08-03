@@ -23,7 +23,6 @@
 				<extensions>true</extensions>
 				<configuration>
 					<instructions>
-						<Sling-Initial-Content>initial-content</Sling-Initial-Content>
 						<Sling-Test-Regexp>.*Test</Sling-Test-Regexp>
 					</instructions>
 				</configuration>
