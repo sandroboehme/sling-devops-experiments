@@ -29,7 +29,7 @@ public class HttpResourceMonitor {
 					return String.format(
 							"%s - %s",
 							response.getStatusLine(),
-							EntityUtils.toString(response.getEntity()).replaceAll("\n", "\\\\n")
+							EntityUtils.toString(response.getEntity()).replaceAll("\\r?\\n", "\\\\n")
 							);
 				}
 			};
