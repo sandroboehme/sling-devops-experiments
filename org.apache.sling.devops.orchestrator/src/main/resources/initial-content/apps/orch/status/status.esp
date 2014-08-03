@@ -12,7 +12,7 @@ p {
 }
 #configs {
 	height: 200px;
-	overflow: scroll;
+	overflow: auto;
 	padding: 0 5px;
 }
 #configsTable {
