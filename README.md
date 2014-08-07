@@ -162,10 +162,12 @@ To verify that the switch between the Sling configs is atomic and consistent (fr
 Usage:
 
 ```
-HttpResourceMonitor address
+HttpResourceMonitor address [numThreads]
 ```
 
-e.g. to monitor the output of the `test` script on the Vagrant VM:
+where `numThreads` is the number of threads to send requests from and is 10 by default.
+
+To monitor the output of the `test` script on the Vagrant VM:
 
 ```
 java -cp target/org.apache.sling.devops.tools-0.0.1-SNAPSHOT.jar org.apache.sling.devops.tools.HttpResourceMonitor http://10.10.10.10/mynode.test

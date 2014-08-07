@@ -17,42 +17,55 @@ public class HttpResourceMonitor {
 
 	private static final Logger logger = LoggerFactory.getLogger(HttpResourceMonitor.class);
 
-	public static void main(String[] args) throws IOException {
-		String address = args.length < 1 ? "http://localhost/" : args[0];
+	public static void main(String[] args) {
+		final String address = args.length < 1 ? "http://localhost/" : args[0];
+		final int numThreads = args.length < 2 ? 10 : Integer.parseInt(args[1]);
 
-		try (CloseableHttpClient httpClient = HttpClients.custom().setRetryHandler(new DefaultHttpRequestRetryHandler(0, false)).build()) {
+		final Runnable runnable = new Runnable() {
+			@Override
+			public void run() {
+				try (final CloseableHttpClient httpClient = HttpClients.custom().setRetryHandler(new DefaultHttpRequestRetryHandler(0, false)).build()) {
 
-			// Custom response handler
-			ResponseHandler<String> responseHandler = new ResponseHandler<String>() {
-				@Override
-				public String handleResponse(final HttpResponse response) throws IOException {
-					return String.format(
-							"%s - %s",
-							response.getStatusLine(),
-							EntityUtils.toString(response.getEntity()).replaceAll("\\r?\\n", "\\\\n")
-							);
-				}
-			};
+					// Custom response handler
+					ResponseHandler<String> responseHandler = new ResponseHandler<String>() {
+						@Override
+						public String handleResponse(final HttpResponse response) throws IOException {
+							return String.format(
+									"%s - %s",
+									response.getStatusLine(),
+									EntityUtils.toString(response.getEntity()).replaceAll("\\r?\\n", "\\\\n")
+									);
+						}
+					};
 
-			// Send requests
-			String prevResponse = null;
-			while (true) {
-				String curResponse;
-				try {
-					curResponse = httpClient.execute(
-							new HttpGet(address),
-							responseHandler
-							);
-				} catch (NoHttpResponseException e) {
-					curResponse = "No response!";
+					// Send requests
+					String prevResponse = null;
+					while (true) {
+						String curResponse;
+						try {
+							curResponse = httpClient.execute(
+									new HttpGet(address),
+									responseHandler
+									);
+						} catch (NoHttpResponseException e) {
+							curResponse = "No response!";
+						} catch (IOException e) {
+							curResponse = "Connection aborted!";
+						}
+						if (prevResponse == null || !prevResponse.equals(curResponse)) {
+							logger.info(curResponse);
+						}
+						prevResponse = curResponse;
+					}
 				} catch (IOException e) {
-					curResponse = "Connection aborted!";
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
-				if (prevResponse == null || !prevResponse.equals(curResponse)) {
-					logger.info(curResponse);
-				}
-				prevResponse = curResponse;
 			}
+		};
+
+		for (int i = 0; i < numThreads; i++) {
+			new Thread(runnable).start();
 		}
 	}
 }
