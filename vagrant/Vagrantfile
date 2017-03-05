@@ -118,7 +118,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   #
   #   chef.validation_client_name = "ORGNAME-validator"
 
-  CRANKSTART_LAUNCHER_PATH = "~/Desktop/crankstart/launcher/target/org.apache.sling.crankstart.launcher-0.0.1-SNAPSHOT.jar"
+  #CRANKSTART_LAUNCHER_PATH = "~/Desktop/crankstart/launcher/target/org.apache.sling.crankstart.launcher-0.0.1-SNAPSHOT.jar"
+  CRANKSTART_LAUNCHER_PATH = "/Users/sandro/Developing/Projekte/sling/svn_devops/contrib/crankstart/launcher/target/org.apache.sling.crankstart.launcher-0.0.1-SNAPSHOT.jar"
   MAVEN_REPO_PATH = "~/.m2/repository"
 
   config.vm.synced_folder MAVEN_REPO_PATH, "/root/.m2/repository"

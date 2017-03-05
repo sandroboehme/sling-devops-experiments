@@ -110,7 +110,7 @@ public class DefaultOrchestrator implements Orchestrator {
 		if (!this.devopsDirectory.exists()) this.devopsDirectory.mkdir();
 
 		// Setup minion controller
-		final String crankstartJar = bundleContext.getProperty(CrankstartConstants.CRANKSTART_JAR_PATH);
+		final String crankstartJar = bundleContext.getProperty("crankstart.jar.path");
 		if (crankstartJar != null) this.minionController = new CrankstartMinionController(crankstartJar);
 		else this.minionController = new ManualMinionController();
 
